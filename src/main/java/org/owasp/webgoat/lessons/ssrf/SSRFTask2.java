@@ -31,9 +31,9 @@ public class SSRFTask2 implements AssignmentEndpoint {
   }
 
   protected AttackResult furBall(String url) {
-    if (url.matches("http://ifconfig\\.pro")) {
+    if ("http://ifconfig.pro".equals(url)) {
       String html;
-      try (InputStream in = new URL(url).openStream()) {
+      try (InputStream in = new URL("http://ifconfig.pro").openStream()) {
         html =
             new String(in.readAllBytes(), StandardCharsets.UTF_8)
                 .replaceAll("\n", "<br>"); // Otherwise the \n gets escaped in the response

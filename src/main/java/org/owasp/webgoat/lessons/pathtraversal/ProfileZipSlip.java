@@ -77,8 +77,13 @@ public class ProfileZipSlip extends ProfileUploadBase {
       while (entries.hasMoreElements()) {
         ZipEntry e = entries.nextElement();
         File f = new File(tmpZipDirectory.toFile(), e.getName());
+        // Prevent Zip Slip by validating the output path
+        java.nio.file.Path targetPath = f.toPath().normalize();
+        if (!targetPath.startsWith(tmpZipDirectory)) {
+          throw new IOException("Bad zip entry: " + e.getName());
+        }
         InputStream is = zip.getInputStream(e);
-        Files.copy(is, f.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(is, targetPath, StandardCopyOption.REPLACE_EXISTING);
       }
 
       return isSolved(currentImage, getProfilePictureAsBase64(username));

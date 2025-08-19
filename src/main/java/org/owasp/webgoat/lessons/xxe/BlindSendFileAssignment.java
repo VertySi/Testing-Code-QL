@@ -14,6 +14,8 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -53,14 +55,27 @@ public class BlindSendFileAssignment implements AssignmentEndpoint, Initializabl
   private void createSecretFileWithRandomContents(WebGoatUser user) {
     var fileContents = "WebGoat 8.0 rocks... (" + randomAlphabetic(10) + ")";
     userToFileContents.put(user, fileContents);
-    File targetDirectory = new File(webGoatHomeDirectory, "/XXE/" + user.getUsername());
-    if (!targetDirectory.exists()) {
-      targetDirectory.mkdirs();
+    String username = user.getUsername();
+    // Validate username: only allow alphanumeric, underscore, hyphen
+    if (!username.matches("^[a-zA-Z0-9_-]+$")) {
+      log.error("Invalid username for file path: {}", username);
+      return;
+    }
+    Path baseDir = Paths.get(webGoatHomeDirectory, "XXE");
+    Path targetDirectory = baseDir.resolve(username).normalize();
+    // Ensure the target directory is within the intended base directory
+    if (!targetDirectory.startsWith(baseDir)) {
+      log.error("Path traversal attempt detected for username: {}", username);
+      return;
+    }
+    File targetDirFile = targetDirectory.toFile();
+    if (!targetDirFile.exists()) {
+      targetDirFile.mkdirs();
     }
     try {
-      Files.writeString(new File(targetDirectory, "secret.txt").toPath(), fileContents, UTF_8);
+      Files.writeString(targetDirectory.resolve("secret.txt"), fileContents, UTF_8);
     } catch (IOException e) {
-      log.error("Unable to write 'secret.txt' to '{}", targetDirectory);
+      log.error("Unable to write 'secret.txt' to '{}'", targetDirectory);
     }
   }
 
